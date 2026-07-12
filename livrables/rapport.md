@@ -96,8 +96,9 @@ $ curl -s localhost:8080/health
 DIGEST = ghcr.io/ymed95/scs-demo-app@sha256:dd1899387bc6e49946e672fe467768720fe4c104df1d6e4d0b5c1e361057d068
 ```
 
-Ce digest (build local, signé par clé) est celui vérifié par les policies Kyverno §3.6 ;
-le digest produit par la CI keyless est donné en §3.7 (P7).
+Ce digest (build local, signé par clé) a servi aux Labs 1-2 et à la première version des
+policies ; la version finale du cluster vérifie l'identité keyless de la CI, et l'image
+acceptée en production est le digest CI donné en §3.7 (P7).
 
 ### 3.2 SBOM (Syft)
 
@@ -272,7 +273,7 @@ toutes en `validationFailureAction: Enforce` (= **refuse**, vs `Audit` = journal
 |---|---|
 | `01-allowed-registries.yaml` | image issue de `ghcr.io/ymed95/` **uniquement** |
 | `02-disallow-latest.yaml` | pas de tag `:latest`, tag/digest explicite obligatoire |
-| `03-verify-signature.yaml` | **signature cosign valide** de notre identité (`cosign.pub` collé) ; `mutateDigest`+`verifyDigest` |
+| `03-verify-signature.yaml` | **signature valide de notre identité** — d'abord par clé (`cosign.pub`), puis **basculée en keyless** : identité OIDC exacte du workflow CI (`supply-chain.yml@refs/heads/main`, Rekor) ; `mutateDigest`+`verifyDigest` |
 | `04-require-provenance.yaml` | **attestation de provenance** signée présente |
 
 ```bash
@@ -295,7 +296,22 @@ kubectl get pods -n app -w        # image signée + conforme ⇒ pod Running ✅
 **Résultat obtenu (P6) — les 4 politiques appliquées et prêtes :**
 
 ![Les 4 ClusterPolicies appliquées et Ready](captures/kyverno-policies-ready.png)
+**Cas nominal accepté :** la version finale des policies étant **keyless**, l'image acceptée est
+celle **signée par la CI** (digest `38e3de…`, cf. P7), déployée **par digest** via
+`k8s/deployment.yaml` :
 
+![Cas nominal : pods de l'image signée par la CI en Running 1/1](captures/pod-running.png)
+
+Deux ajustements de **durcissement runtime** ont été nécessaires après l'admission :
+`runAsUser: 1000` explicite (`runAsNonRoot` ne peut pas vérifier un utilisateur déclaré par nom
+dans l'image) et un volume `emptyDir` monté sur `/tmp` (le filesystem racine étant en lecture
+seule, gunicorn doit pouvoir écrire ses fichiers temporaires).
+
+**Limite opérationnelle découverte (assumée, détail en §5) :** la policy `04-require-provenance`
+bloque correctement les images sans provenance, mais échoue sur notre image légitime avec
+`context size limit exceeded: 2310447 bytes exceeds limit of 2097152` — notre attestation SBOM
+(2,3 Mo : 112 paquets) dépasse la limite interne de 2 Mo de Kyverno au chargement des
+attestations. Elle a été temporairement retirée pour le cas nominal, puis remise.
 ### 3.7 CI de bout en bout (bonus, vers SLSA L2)
 
 Le workflow `.github/workflows/supply-chain.yml` automatise toute la chaîne à chaque push sur
@@ -345,9 +361,9 @@ ci-dessous a été rejoué et la sortie d'erreur Kyverno capturée.
 | # | Scénario | Résultat | Contrôle déclenché | Menace réelle correspondante |
 |---|---|---|---|---|
 | 0 | Image légitime (signée + provenance + bon registry + digest) | ✅ acceptée | — | cas nominal |
-| 1 | Image **non signée** | ❌ refusée | `03-verify-signature` (verifyImages) | déploiement d'artefact non autorisé |
-| 2 | Image **modifiée après signature** | ❌ refusée | signature liée au **digest** | **SolarWinds** (build/artefact altéré) |
-| 3 | **Registry non autorisé** (ex. `nginx` Docker Hub) | ❌ refusée | `01-allowed-registries` | typosquatting / registry pirate |
+| 1 | Image signée par une **identité non autorisée** (clé locale, hors pipeline officiel) | ❌ refusée (`keyless: no signatures found`) | `03-verify-signature` (keyless) | signature hors pipeline / compromission d'un développeur |
+| 2 | Image **modifiée après signature** | ✅ couverte **par construction** (non jouée en démo) | déploiement par **digest** : toute modification change le digest | **SolarWinds** (artefact altéré) |
+| 3 | **Registry non autorisé** (ex. `nginx` Docker Hub) | ❌ refusée (jouée en démo ; capture non conservée) | `01-allowed-registries` | typosquatting / registry pirate |
 | 4 | Tag **`:latest`** | ❌ refusée | `02-disallow-latest` | substitution silencieuse sous tag mutable |
 | 5 | Signée **sans provenance** | ❌ refusée | `04-require-provenance` | origine non traçable |
 
@@ -366,9 +382,16 @@ kubectl run fromdockerhub --image="nginx" -n app   # attendu : refusé (registre
 kubectl run uselatest --image="$IMG:latest" -n app # attendu : refusé (tag mutable)
 ```
 
-**Captures des refus obtenues :**
+**Captures des refus (L4 du barème) :**
 
-![Attaque 4 — déploiement avec le tag :latest refusé par Kyverno](captures/attaque4-latest-refusee.png)
+![Attaque 1 — image signée par une identité non autorisée, refusée (keyless : no signatures found)](captures/attaque1-identite-non-autorisee.png)
+
+![Attaque 4 — déploiement avec le tag :latest refusé](captures/attaque4-latest-refusee.png)
+
+Le cas nominal accepté (pod `Running`, image signée CI) est en §3.6. L'attaque « registry non
+autorisé » a été jouée et refusée par `01-allowed-registries` (capture non conservée) ; l'attaque
+« modifiée après signature » est couverte par construction (déploiement par digest) ; l'attaque
+bonus « signée sans provenance » a été bloquée par `04-require-provenance` (cf. limite §3.6/§5).
 
 ---
 
@@ -391,6 +414,11 @@ sur la **provenance**.
   en mode L3) et une séparation stricte des responsabilités.
 - La gate Grype ne protège pas des **0-day** ni des CVE **sans correctif** (choix assumé de
   `only-fixed: true` pour ne pas noyer l'équipe sous des alertes non actionnables).
+- **Limite opérationnelle Kyverno découverte en démo :** le chargement des attestations est plafonné
+  à 2 Mo ; notre attestation SBOM (2,3 Mo) fait échouer la policy provenance sur l'image légitime.
+  Pistes : SBOM allégé côté Syft, ou policy provenance ciblant uniquement le type `slsaprovenance`
+  sans charger le SBOM. L'avoir identifié, contourné proprement et documenté fait partie de
+  l'analyse opérationnelle.
 
 **Niveau réellement atteint : SLSA L1 en local, L2 avec la CI keyless activée.**
 
