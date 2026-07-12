@@ -79,7 +79,7 @@ echo "VOTRE_TOKEN" | docker login ghcr.io -u Ymed95 --password-stdin
 - Le pipeline CI (Lab 5) ne nécessite AUCUN secret : il utilise OIDC + `GITHUB_TOKEN` automatiquement.
   → **Activez-le tôt**, il peut tourner en fond pendant que vous faites le reste à la main.
 
-## Piste A — Build & Preuves (Labs 0 → 1 → 2)
+## Piste Ymed — Build & Preuves (Labs 0 → 1 → 2)
 **Objectif :** une image signée, poussée sur GHCR, avec SBOM + scan + 2 attestations vérifiables.
 
 - [ ] Lab 0 : outils installés, image buildée, poussée sur `ghcr.io/Ymed95/scs-demo-app`, digest récupéré
@@ -93,7 +93,7 @@ echo "VOTRE_TOKEN" | docker login ghcr.io -u Ymed95 --password-stdin
 - [ ] **Livrer à la Piste B :** le `$DIGEST`, le contenu de `cosign.pub`
 - [ ] **Livrer à la Piste C :** toutes les sorties de commandes (pour le rapport §3)
 
-## Piste B — Cluster qui refuse & démo attaque/défense (Labs 3 → 4)
+## Piste Adelsino — Cluster qui refuse & démo attaque/défense (Labs 3 → 4)
 **Objectif :** cluster kind + Kyverno en `Enforce`, image légitime acceptée, 5 attaques bloquées et capturées.
 
 - [ ] Lab 3 : `kind create cluster --config cluster/kind-config.yaml`, Kyverno installé et `Ready`
@@ -109,7 +109,7 @@ echo "VOTRE_TOKEN" | docker login ghcr.io -u Ymed95 --password-stdin
 - [ ] Tableau de synthèse attaque → contrôle → menace rempli
 - [ ] **Livrer à la Piste C :** toutes les captures + la vidéo + le tableau
 
-## Piste C — CI bout-en-bout, Rapport, Threat Model, intégration finale (Lab 5 + livrables)
+## Piste Djamel — CI bout-en-bout, Rapport, Threat Model, intégration finale (Lab 5 + livrables)
 **Objectif :** pipeline CI vert (bonus SLSA L2), rapport + threat model complets, dépôt prêt pour la soutenance.
 
 - [ ] Lab 5 : activer le workflow `.github/workflows/supply-chain.yml` sur push vers `main`
