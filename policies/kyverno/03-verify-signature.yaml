@@ -31,23 +31,14 @@ spec:
           mutateDigest: true          # réécrit le tag en digest (empêche la substitution)
           verifyDigest: true
           required: true
-          # ---- (A) VARIANTE PAR CLÉ ----
+          # ---- MODE KEYLESS (SLSA L2) : on exige l'identité du workflow GitHub Actions ----
+          # L'image légitime est celle SIGNÉE PAR NOTRE PIPELINE (OIDC du runner), pas par une
+          # clé locale. Un attaquant ne peut pas se faire passer pour ce workflow précis.
           attestors:
             - count: 1
               entries:
-                - keys:
-                    publicKeys: |-
-                      -----BEGIN PUBLIC KEY-----
-                      MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEqTmzpbKrYJ0cDoQMB/f6dtFXh797
-                      fVbTuM4HibLn0NLCqq58s4pShkKYYBRlZg3LiMhAWtR+yO0VcVQ1PHIFbA==
-                      -----END PUBLIC KEY-----
-          # ---- (B) VARIANTE KEYLESS (Lab 5) : commentez le bloc 'keys' ci-dessus
-          #          et décommentez le bloc 'keyless' ci-dessous ----
-          # attestors:
-          #   - count: 1
-          #     entries:
-          #       - keyless:
-          #           issuer: "https://token.actions.githubusercontent.com"
-          #           subject: "https://github.com/Ymed95/projet_technique/.github/workflows/supply-chain.yml@refs/heads/main"
-          #           rekor:
-          #             url: "https://rekor.sigstore.dev"
+                - keyless:
+                    issuer: "https://token.actions.githubusercontent.com"
+                    subject: "https://github.com/Ymed95/projet_technique/.github/workflows/supply-chain.yml@refs/heads/main"
+                    rekor:
+                      url: "https://rekor.sigstore.dev"

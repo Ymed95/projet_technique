@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: app
-          image: ghcr.io/ymed95/scs-demo-app@sha256:dd1899387bc6e49946e672fe467768720fe4c104df1d6e4d0b5c1e361057d068
+          image: ghcr.io/ymed95/scs-demo-app@sha256:38e3de5741e0996d4997b232982325bce887366db1f13a91aa1e7b290203204c
           ports:
             - containerPort: 8080
           readinessProbe:
