@@ -1,6 +1,6 @@
 # Threat Model — Chaîne d'approvisionnement logicielle
 
-- **Groupe :** _(à compléter — noms des 3 membres)_ · **Date :** 2026-07-12
+- **Groupe :** Ymed, Djamel, Adelsino · **Date :** 2026-07-12
 - **Périmètre :** POC `ghcr.io/ymed95/scs-demo-app` — chaîne build → registry → cluster (kind + Kyverno).
 
 > Objectif : montrer qu'on **raisonne menaces → contrôles → couverture**, pas seulement
@@ -76,10 +76,10 @@ lui-même)** — c'est précisément ce que SLSA L3 adresse et que notre POC n'a
 | | Visé | Atteint | Justification |
 |---|---|---|---|
 | Provenance existe (**L1**) | ✅ | ✅ | attestation `slsaprovenance` attachée et vérifiable (`cosign verify-attestation`) |
-| Build hébergé + provenance signée (**L2**) | ✅ | ✅ *si CI activée* | signature **keyless** par l'OIDC du runner GitHub (Lab 5) |
+| Build hébergé + provenance signée (**L2**) | ✅ | ✅ **atteint** | pipeline CI vert, signature **keyless** par l'OIDC du runner GitHub, vérifiée avec l'identité exacte du workflow (preuve P7 du rapport, Rekor logIndex 2154146393) |
 | Build isolé infalsifiable (**L3**) | — | ❌ | hors périmètre : exigerait un générateur isolé + séparation stricte des droits |
 
 **Conclusion honnête :** le POC atteint **SLSA L1** en local (signature par clé, poste non isolé)
-et **SLSA L2** dès que la CI keyless est activée. Il reste contournable par quiconque contrôle le
+et **SLSA L2** via la CI keyless (activée et vérifiée, cf. rapport §3.7). Il reste contournable par quiconque contrôle le
 poste de build (local) ou dispose des droits de modification du workflow (CI) — c'est la frontière
 L2 → L3 que nous documentons en toute transparence.
