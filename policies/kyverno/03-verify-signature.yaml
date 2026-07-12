@@ -38,7 +38,8 @@ spec:
                 - keys:
                     publicKeys: |-
                       -----BEGIN PUBLIC KEY-----
-                      COLLEZ_ICI_LE_CONTENU_DE_cosign.pub
+                      MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEqTmzpbKrYJ0cDoQMB/f6dtFXh797
+                      fVbTuM4HibLn0NLCqq58s4pShkKYYBRlZg3LiMhAWtR+yO0VcVQ1PHIFbA==
                       -----END PUBLIC KEY-----
           # ---- (B) VARIANTE KEYLESS (Lab 5) : commentez le bloc 'keys' ci-dessus
           #          et décommentez le bloc 'keyless' ci-dessous ----
