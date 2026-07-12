@@ -87,8 +87,17 @@ export DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$IMG:$TAG")
 echo "$DIGEST"
 ```
 
-> ⏳ **PREUVE À CAPTURER (P1)** — coller la sortie de `curl .../health` et la ligne
-> `DIGEST = ghcr.io/ymed95/scs-demo-app@sha256:…`. Ce digest est réutilisé partout ensuite.
+**Résultat obtenu (P1) — l'app répond et le digest est fixé :**
+
+```
+$ curl -s localhost:8080/health
+{"status":"ok","version":"1.0.0"}
+
+DIGEST = ghcr.io/ymed95/scs-demo-app@sha256:dd1899387bc6e49946e672fe467768720fe4c104df1d6e4d0b5c1e361057d068
+```
+
+Ce digest (build local, signé par clé) est celui vérifié par les policies Kyverno §3.6 ;
+le digest produit par la CI keyless est donné en §3.7 (P7).
 
 ### 3.2 SBOM (Syft)
 
