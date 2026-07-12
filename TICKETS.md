@@ -4,6 +4,73 @@ Le dépôt de référence est déjà complet (app, 5 labs, policies Kyverno, pip
 **On n'invente rien : on exécute, on personnalise (`Ymed95`), on prouve.** Les mêmes tickets
 existent en Issues GitHub sur ce dépôt — cochez-les au fur et à mesure.
 
+## ⚡ SETUP EXPRESS (0 → 30 min) — À FAIRE MAINTENANT, EN PARALLÈLE
+
+Équipe : **2 postes Windows + 1 poste Linux.**
+
+**Affectation (choisie selon l'OS) :**
+| Personne | OS | Piste | Pourquoi |
+|---|---|---|---|
+| 1 | **Linux** | **B — cluster Kyverno + attaque/défense** (#3) | `kind` tourne le plus proprement sur Linux |
+| 2 | **Windows** | **A — build, SBOM, scan, signature** (#2) | a besoin de Docker + les CLI, poste de build principal |
+| 3 | **Windows** | **C — CI + rapport + threat model** (#4) | le plus léger en local (la CI tourne sur GitHub) |
+
+### 0. Cloner la branche de travail (les 3)
+```bash
+git clone https://github.com/Ymed95/projet_technique.git
+cd projet_technique
+git checkout claude/project-delivery-tonight-kt8qhz
+```
+
+### 1a. Installer les outils — Linux (personne 1)
+```bash
+# Docker (si absent) : suivez docs.docker.com/engine/install pour votre distro, puis :
+sudo usermod -aG docker $USER   # puis re-login pour éviter sudo à chaque docker
+# kind + kubectl + jq :
+[ $(uname -m) = x86_64 ] && curl -Lo ./kind https://kind.sigs.k8s.io/dl/latest/kind-linux-amd64
+chmod +x ./kind && sudo mv ./kind /usr/local/bin/kind
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+chmod +x kubectl && sudo mv kubectl /usr/local/bin/
+sudo apt-get install -y jq   # ou dnf/pacman selon la distro
+# syft / grype / cosign :
+curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh  | sh -s -- -b /usr/local/bin
+curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
+curl -sSfLo cosign https://github.com/sigstore/cosign/releases/latest/download/cosign-linux-amd64
+chmod +x cosign && sudo mv cosign /usr/local/bin/
+```
+
+### 1b. Installer les outils — Windows (personnes 2 & 3)
+**LE PLUS LONG : Docker Desktop. Lancez-le en TOUT PREMIER.**
+1. Installer **Docker Desktop** depuis docker.com → cocher **WSL2** à l'install → redémarrer si demandé → ouvrir Docker Desktop et attendre "Engine running".
+2. Puis dans **PowerShell** :
+```powershell
+winget install Kubernetes.kind
+winget install Kubernetes.kubectl
+winget install jqlang.jq
+winget install Sigstore.cosign
+```
+3. Pour **Syft** et **Grype** (pas fiables via winget), le plus simple = les installer dans **WSL2 Ubuntu** (déjà présent avec Docker Desktop) avec les commandes Linux 1a, OU télécharger les `.zip` Windows depuis les releases GitHub (anchore/syft, anchore/grype) et mettre les `.exe` dans un dossier du PATH.
+> 💡 **Astuce anti-galère Windows :** la personne 2 (Piste A) peut faire TOUT le travail Docker/cosign **dans le terminal WSL2 Ubuntu** — c'est le chemin le plus fiable. La personne 3 (Piste C) n'a presque pas besoin de local : Docker Desktop + navigateur suffisent.
+
+### 2. Vérifier (chaque poste, selon sa piste)
+```bash
+docker version && kind version && kubectl version --client && syft version && grype version && cosign version && jq --version
+```
+Personne 3 (Piste C) : `docker version` + un compte GitHub suffisent pour démarrer.
+
+### 3. PAT GitHub `write:packages` (personne 2 surtout — requise dès Lab 0)
+1. GitHub → Settings → Developer settings → **Personal access tokens (classic)** → Generate → cocher **`write:packages`** (coche aussi `read:packages`). **Ne JAMAIS le commiter.**
+2. Se connecter à GHCR :
+```bash
+echo "VOTRE_TOKEN" | docker login ghcr.io -u Ymed95 --password-stdin
+```
+> Si le PAT est créé sur un autre compte que `Ymed95`, connectez-vous avec CE compte-là et poussez sous `ghcr.io/CE-compte/...` — mais alors prévenez-moi pour que je réaligne les policies. **Le plus simple : PAT sur le compte `Ymed95`.**
+
+**Quand `docker version` répond et que `docker login ghcr.io` réussit → chacun démarre sa piste (labs ci-dessous).**
+
+---
+
+
 ## Décisions déjà prises (ne pas rediscuter)
 - Identité GHCR unique pour toute l'équipe : `ghcr.io/Ymed95/scs-demo-app`.
 - Toutes les policies `policies/kyverno/*.yaml` et `k8s/deployment.yaml` sont déjà personnalisées
