@@ -39,18 +39,16 @@ curl -sSfLo cosign https://github.com/sigstore/cosign/releases/latest/download/c
 chmod +x cosign && sudo mv cosign /usr/local/bin/
 ```
 
-### 1b. Installer les outils — Windows (personnes 2 & 3)
-**LE PLUS LONG : Docker Desktop. Lancez-le en TOUT PREMIER.**
-1. Installer **Docker Desktop** depuis docker.com → cocher **WSL2** à l'install → redémarrer si demandé → ouvrir Docker Desktop et attendre "Engine running".
-2. Puis dans **PowerShell** :
-```powershell
-winget install Kubernetes.kind
-winget install Kubernetes.kubectl
-winget install jqlang.jq
-winget install Sigstore.cosign
-```
-3. Pour **Syft** et **Grype** (pas fiables via winget), le plus simple = les installer dans **WSL2 Ubuntu** (déjà présent avec Docker Desktop) avec les commandes Linux 1a, OU télécharger les `.zip` Windows depuis les releases GitHub (anchore/syft, anchore/grype) et mettre les `.exe` dans un dossier du PATH.
-> 💡 **Astuce anti-galère Windows :** la personne 2 (Piste A) peut faire TOUT le travail Docker/cosign **dans le terminal WSL2 Ubuntu** — c'est le chemin le plus fiable. La personne 3 (Piste C) n'a presque pas besoin de local : Docker Desktop + navigateur suffisent.
+### 1b. Windows via WSL2 (personnes 2 & 3) — CHEMIN CHOISI ✅
+**Bonne nouvelle : les 3 sont sous WSL2 Ubuntu → tout le monde utilise le bloc Linux 1a, dans le terminal Ubuntu.** Pas de winget, pas de binaires Windows.
+
+**Le plus long : rendre Docker joignable DANS WSL. Faites-le en premier.**
+- Option simple : **Docker Desktop** installé → Settings → Resources → **WSL Integration** → activer pour votre distro Ubuntu. Puis `docker version` doit répondre *dans le terminal Ubuntu*.
+- Option sans Docker Desktop : `sudo apt-get install -y docker.io && sudo service docker start && sudo usermod -aG docker $USER` (puis rouvrir le terminal).
+
+Ensuite, dans WSL2 Ubuntu, lancez le **bloc 1a** (kind, kubectl, jq, syft, grype, cosign).
+> ⚠️ Travaillez **toujours dans le terminal WSL2 Ubuntu**, pas dans PowerShell. Clonez le repo côté Linux (`~/projet_technique`, pas `/mnt/c/...`) pour de meilleures perfs Docker.
+> La personne 3 (Piste C) a surtout besoin de Docker + navigateur (la CI tourne sur GitHub).
 
 ### 2. Vérifier (chaque poste, selon sa piste)
 ```bash
