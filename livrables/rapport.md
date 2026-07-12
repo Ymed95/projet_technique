@@ -1,6 +1,6 @@
 # Rapport — Sécuriser la chaîne d'approvisionnement logicielle (SLSA)
 
-- **Groupe :** _(à compléter — noms des 3 membres)_
+- **Groupe :** Adelsino,Djamel et Ymed
 - **Fork :** https://github.com/Ymed95/projet_technique
 - **Image :** `ghcr.io/ymed95/scs-demo-app`
 - **Voie :** ☑ Local (kind) ☐ Azure (AKS/ACR)
