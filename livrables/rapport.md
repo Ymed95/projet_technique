@@ -294,8 +294,37 @@ Le workflow `.github/workflows/supply-chain.yml` automatise toute la chaîne à 
 attestation SBOM → attestation de provenance. **Aucune clé stockée** : l'identité est celle du
 workflow (`id-token: write`). C'est ce qui fait grimper le niveau SLSA (cf. §5).
 
-> ⏳ **PREUVE À CAPTURER (P7, si CI activée)** — capture de l'onglet Actions au vert + `cosign verify`
-> avec `--certificate-identity` du workflow.
+**Résultat obtenu (P7) — pipeline vert de bout en bout, image signée par l'identité du workflow :**
+
+![Pipeline supply-chain vert : build → SBOM → scan → push → sign keyless → attestations](captures/ci-pipeline-vert.png)
+
+Digest produit et signé par la CI (run #4, 1 m 51 s) :
+`ghcr.io/ymed95/scs-demo-app@sha256:38e3de5741e0996d4997b232982325bce887366db1f13a91aa1e7b290203204c`
+
+Vérification **keyless** en exigeant l'identité exacte du workflow :
+
+```
+$ cosign verify --certificate-identity ".../supply-chain.yml@refs/heads/main" \
+    --certificate-oidc-issuer "https://token.actions.githubusercontent.com" "$DIGEST_CI"
+  - The cosign claims were validated
+  - Existence of the claims in the transparency log was verified offline
+  - The code-signing certificate was verified using trusted certificate authority certificates
+  "Issuer":  "https://token.actions.githubusercontent.com",
+  "Subject": "https://github.com/Ymed95/projet_technique/.github/workflows/supply-chain.yml@refs/heads/main",
+  "githubWorkflowTrigger": "push",  "githubWorkflowRef": "refs/heads/main"
+
+$ cosign verify-attestation --type spdxjson       ... → "https://spdx.dev/Document"
+$ cosign verify-attestation --type slsaprovenance ... → "https://slsa.dev/provenance/v0.2"
+   builder.id = ".../supply-chain.yml@refs/heads/main"
+
+$ cosign tree "$DIGEST_CI"
+└── 🔐 Signatures  (….sig)
+└── 💾 Attestations (….att) : provenance SLSA + SBOM SPDX
+```
+
+Personne ne peut usurper cette identité sans contrôler le runner GitHub du repo : c'est la
+marche **SLSA L2**. La signature est journalisée dans le log de transparence public **Rekor**
+(logIndex `2154146393`).
 
 ---
 
@@ -342,7 +371,7 @@ sur la **provenance**.
 | Niveau | Exigence | Notre POC |
 |---|---|---|
 | **L1** | La provenance existe (le build enregistre comment l'artefact a été fait) | ✅ Atteint — attestation `slsaprovenance` attachée et vérifiable |
-| **L2** | Build sur **plateforme hébergée** + provenance **signée** | ✅ Atteint *si CI activée* (Lab 5) — signature keyless par l'OIDC du runner GitHub |
+| **L2** | Build sur **plateforme hébergée** + provenance **signée** | ✅ **Atteint** (Lab 5, preuve P7) — pipeline CI vert, signature keyless par l'OIDC du runner GitHub, vérifiée avec l'identité exacte du workflow |
 | **L3** | Build **isolé/infalsifiable**, provenance non contournable | ❌ Non atteint — hors périmètre |
 
 **Honnêteté sur ce qui reste contournable :**
@@ -392,5 +421,5 @@ Chaque étape est détaillée dans `labs/lab0-setup.md` → `labs/lab4-attaque-d
 
 - `policies/kyverno/` — les 4 ClusterPolicy commentées.
 - `.github/workflows/supply-chain.yml` — pipeline de référence.
-- Liens Rekor (mode keyless) : à coller si CI activée.
+- Entrée Rekor (signature keyless CI) : logIndex 2154146393 — https://search.sigstore.dev/?logIndex=2154146393
 - Sorties brutes complètes des commandes P1–P8.
