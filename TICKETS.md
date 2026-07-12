@@ -56,14 +56,29 @@ existent en Issues GitHub sur ce dépôt — cochez-les au fur et à mesure.
 - [ ] Repasser la checklist d'auto-évaluation de la consigne (section 8) avant 23h
 - [ ] Préparer les 12 min de démo live + anticiper les 5 min de questions
 
-## Timeline suggérée (à adapter à l'heure qu'il vous reste)
-| Bloc | Piste A | Piste B | Piste C |
+## Timeline verrouillée — 6 h, 3 personnes (rendu 23h)
+
+**Décision qui dé-risque tout : on fait la signature PAR CLÉ en premier** (déterministe, hors-ligne,
+pas d'auth navigateur), et c'est déjà le mode actif des policies fournies (`03`, `04` : bloc
+`publicKeys`). Le **keyless** et la **CI** sont du **bonus** (ils débloquent la discussion SLSA L2) :
+on ne les fait que si la démo par clé est verte et filmée. **Ne bloquez jamais le chemin critique
+pour un bonus.**
+
+**Chemin critique (ce qui doit absolument être fini) :**
+`A: image signée par clé + attestations` → `B: policies avec cosign.pub + déploiement accepté`
+→ `B: 4 attaques filmées` → `C: rapport + threat model assemblés`.
+Le jalon le plus important : **A livre `$DIGEST` + `cosign.pub` à B au plus tard à H+3.**
+
+| Bloc (2 h chacun) | Piste A — preuves | Piste B — cluster/démo | Piste C — CI + rédaction |
 |---|---|---|---|
-| H+0 → H+1 | Lab 0 (build, push, digest) | Lab 3.1-3.2 (kind + Kyverno up, en parallèle, sans attendre le digest) | Active le workflow Lab 5, prépare threat model |
-| H+1 → H+2 | Lab 1 (SBOM, scan, gate cassée) | Prépare/relit les 4 policies, attend `cosign.pub` + digest | Suit la CI, commence le rapport §1-2 |
-| H+2 → H+3 | Lab 2 (signature + attestations) → livre digest + cosign.pub | Termine Lab 3 (déploiement accepté) | Bascule policy 03 en keyless, teste avec l'image CI |
-| H+3 → H+4 | Aide Piste B/C, relit le rapport | Lab 4 (5 attaques + captures + vidéo) | Rédige rapport §3-5 avec les preuves qui arrivent |
-| Dernière heure | Tout le monde | Tout le monde | Assemble rapport + threat model + checklist finale, commit, push |
+| **H+0 → H+2** | Lab 0 (outils, build, push GHCR, digest) **puis** Lab 1 (SBOM + scan + gate cassée + capture) | Lab 3.1-3.2 en parallèle : `kind` up, Kyverno `Ready`, ns `app`, applique les 4 policies (déjà `Ymed95`). Relis lab4 pour préparer les 5 attaques. | Active le workflow Lab 5 (aucun secret) → le laisser tourner. Démarre `threat-model.md` + rapport §1-2 (contexte, archi) — pas besoin des preuves pour ça. |
+| **H+2 → H+4** | Lab 2 **par clé** : `generate-key-pair`, `sign`, `attest` SBOM + provenance, `cosign tree`. **→ livrer `$DIGEST` + `cosign.pub` à B (~H+3).** Puis keyless en bonus. | Colle `cosign.pub` dans policies `03` et `04`, mets le `$DIGEST` dans `k8s/deployment.yaml` → `kubectl apply` → **pod Running**. Enchaîne Lab 4 : les 5 attaques, **capture + vidéo** de chaque refus. | Suis la CI (verte ?). Rapport §3 (mise en œuvre) au fil des sorties que A pousse. Prépare le tableau attaque→contrôle→menace. |
+| **H+4 → H+5** | Aide B à filmer / rejoue le cas nominal. Vérifie que `cosign.key` n'est PAS commité. | Termine captures + **vidéo complète** (plan B soutenance). Remplit le tableau de synthèse. | Rapport §4-5 (démo + SLSA, honnête sur L2/L3) avec les captures de B. Bonus si CI verte : bascule policy `03` en keyless et note-le. |
+| **H+5 → H+6** | **Tous ensemble :** repasser la checklist consigne §8, assembler rapport + threat model, intégrer captures/vidéo, relire, commit + push final. Répéter la démo une fois pour la soutenance. |
+
+**Si vous prenez du retard, coupez dans cet ordre (garde le noté) :** keyless → CI Lab 5 → attaque 5
+(sans-provenance) → comparaison Trivy. **Ne coupez jamais :** SBOM+gate, signature par clé,
+déploiement accepté, les 4 attaques filmées, rapport + threat model.
 
 **Règle d'or :** chaque membre **commit lui-même** ses preuves (la traçabilité Git est notée).
 Ne travaillez pas dans un fichier partagé unique en fin de soirée — poussez au fil de l'eau sur
