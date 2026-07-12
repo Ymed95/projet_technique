@@ -188,8 +188,19 @@ cosign sign --yes "$DIGEST"
 cosign verify --certificate-identity-regexp ".*" --certificate-oidc-issuer-regexp ".*" "$DIGEST"
 ```
 
-> ⏳ **PREUVE À CAPTURER (P4)** — sortie de `cosign verify` qui réussit (mode par clé). Vérifier
-> que `cosign.key` est bien ignoré : `git status --porcelain | grep cosign.key` doit être **vide**.
+**Résultat obtenu (P4) — signature vérifiée :**
+
+```
+$ cosign verify --key cosign.pub "$DIGEST"
+Verification for ghcr.io/ymed95/scs-demo-app@sha256:dd1899387bc...057d068 --
+The following checks were performed on each of these signatures:
+  - The cosign claims were validated
+  - Existence of the claims in the transparency log was verified offline
+  - The signatures were verified against the specified public key
+```
+
+Le secret `cosign.key` est bien **ignoré par git** (`git status` ne montre que `cosign.pub`) —
+la clé privée n'est jamais commitée, conformément à `.gitignore`.
 
 ### 3.5 Attestations : SBOM + provenance
 
@@ -222,8 +233,23 @@ cosign verify-attestation --key cosign.pub --type slsaprovenance "$DIGEST" \
 cosign tree "$DIGEST"    # doit montrer la signature (.sig) + les 2 attestations (.att)
 ```
 
-> ⏳ **PREUVE À CAPTURER (P5)** — sortie de `cosign tree "$DIGEST"` montrant `.sig` + `.att`, et
-> les deux `predicateType` renvoyés par `verify-attestation`.
+**Résultat obtenu (P5) — signature + 2 attestations attachées au digest :**
+
+```
+$ cosign verify-attestation --key cosign.pub --type spdxjson "$DIGEST"      → "https://spdx.dev/Document"
+$ cosign verify-attestation --key cosign.pub --type slsaprovenance "$DIGEST" → "https://slsa.dev/provenance/v0.2"
+
+$ cosign tree "$DIGEST"
+📦 Supply Chain Security Related artifacts for ...scs-demo-app@sha256:dd1899...057d068
+├── 🔗 https://slsa.dev/provenance/v0.2   (attestation de provenance)
+├── 🔗 https://sigstore.dev/cosign/sign/v1 (signature)
+└── 🔗 https://spdx.dev/Document          (attestation SBOM)
+```
+
+Les trois artefacts (1 signature + 2 attestations) sont **stockés à côté de l'image dans GHCR**,
+rattachés au **digest exact**, et tous **vérifiés** contre notre clé publique. C'est la garantie
+zero-trust : si l'image changeait d'un octet, le digest changerait et aucune de ces preuves ne
+correspondrait plus.
 
 ### 3.6 Admission control (Kyverno)
 

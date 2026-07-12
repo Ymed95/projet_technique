@@ -45,3 +45,29 @@ exit=2      <-- la chaîne est CASSEE : CVE critique CORRIGEABLE détectée
 
 Conclusion : la gate bloque bien sur une vulnérabilité critique ET actionnable.
 Remédiation documentée : apt-get upgrade dans le stage runtime -> rebuild -> scan vert.
+
+========================================================================
+PREUVES — Lab 2 (Piste A) — signature + attestations
+========================================================================
+
+--- P4 : signature cosign verifiee (par cle) -------------------------
+$ cosign sign --key cosign.key "$DIGEST"           # signature poussee sur GHCR
+$ cosign verify --key cosign.pub "$DIGEST"
+  - The cosign claims were validated
+  - Existence of the claims in the transparency log was verified offline
+  - The signatures were verified against the specified public key
+cosign.key : NON commite (seul cosign.pub apparait dans git status) -> OK .gitignore
+
+--- P5 : 2 attestations attachees et verifiees -----------------------
+$ cosign verify-attestation --key cosign.pub --type spdxjson "$DIGEST"
+  -> "https://spdx.dev/Document"                   (attestation SBOM)
+$ cosign verify-attestation --key cosign.pub --type slsaprovenance "$DIGEST"
+  -> "https://slsa.dev/provenance/v0.2"            (attestation de provenance)
+
+$ cosign tree "$DIGEST"
+📦 ...scs-demo-app@sha256:dd1899387bc6e49946e672fe467768720fe4c104df1d6e4d0b5c1e361057d068
+├── 🔗 https://slsa.dev/provenance/v0.2    (provenance)
+├── 🔗 https://sigstore.dev/cosign/sign/v1 (signature)
+└── 🔗 https://spdx.dev/Document           (SBOM)
+
+=> 1 signature + 2 attestations, toutes verifiees contre cosign.pub. Lab 2 OK.
