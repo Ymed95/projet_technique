@@ -1,0 +1,47 @@
+========================================================================
+PREUVES — Lab 0 & Lab 1 (Piste A) — image ghcr.io/ymed95/scs-demo-app
+========================================================================
+
+--- P1 : l'app répond (health check) --------------------------------
+$ docker run -d -p 8080:8080 --name scs "$IMG:$TAG"
+ccb082e6d211b8e61b97935f7425da0c4e75c605d45c6440b3c2ce6f7ca876ea
+$ curl -s localhost:8080/health ; echo
+{"status":"ok","version":"1.0.0"}
+
+--- P1 : push GHCR + digest immuable ---------------------------------
+$ docker push "$IMG:$TAG"
+0.1.0: digest: sha256:dd1899387bc6e49946e672fe467768720fe4c104df1d6e4d0b5c1e361057d068 size: 1992
+$ echo "DIGEST = $DIGEST"
+DIGEST = ghcr.io/ymed95/scs-demo-app@sha256:dd1899387bc6e49946e672fe467768720fe4c104df1d6e4d0b5c1e361057d068
+
+--- P2 : SBOM (Syft) — 112 paquets -----------------------------------
+$ syft "$IMG:$TAG" -o spdx-json > sbom.spdx.json
+   ├── Packages        [112 packages]
+   ├── File metadata   [2,682 locations]
+   ├── Executables     [758 executables]
+
+$ syft "$IMG:$TAG" -o table | head -n 20
+NAME                     VERSION          TYPE
+apt                      3.0.3            deb
+bash                     5.2.37-2+b8      deb
+ca-certificates          20250419         deb
+click                    8.4.2            python
+flask                    3.0.3            python
+blinker                  1.9.0            python
+... (112 paquets au total : base Debian 13 + Python/Flask/gunicorn)
+
+--- P3 : la gate de scan CASSE la chaîne (Grype) ---------------------
+$ grype "$IMG:$TAG" ; echo "exit=$?"     # lit .grype.yaml (only-fixed + fail-on critical)
+ ✘ Scan for vulnerabilities   [91 vulnerability matches]
+   ├── by severity: 8 critical, 59 high, 84 medium, 15 low, 51 negligible (36 unknown)
+   └── by status:   91 fixed, 162 not-fixed, 162 ignored
+NAME         INSTALLED        FIXED IN          TYPE  VULNERABILITY    SEVERITY   RISK
+libssl3t64   3.5.5-1~deb13u2  3.5.6-1~deb13u2   deb   CVE-2026-34182   Critical   0.2
+openssl      3.5.5-1~deb13u2  3.5.6-1~deb13u2   deb   CVE-2026-34182   Critical   0.2
+openssl-provider-legacy 3.5.5-1~deb13u2 3.5.6-1~deb13u2 deb CVE-2026-34182 Critical 0.2
+... (8 critiques corrigeables, dans openssl/libssl de la base)
+[0042] ERROR discovered vulnerabilities at or above the severity threshold
+exit=2      <-- la chaîne est CASSEE : CVE critique CORRIGEABLE détectée
+
+Conclusion : la gate bloque bien sur une vulnérabilité critique ET actionnable.
+Remédiation documentée : apt-get upgrade dans le stage runtime -> rebuild -> scan vert.

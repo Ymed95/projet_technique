@@ -105,8 +105,22 @@ syft "$IMG:$TAG" -o table | head -n 30
 secondes en cherchant dans le SBOM. C'est aussi une exigence réglementaire montante (US EO 14028,
 Cyber Resilience Act).
 
-> ⏳ **PREUVE À CAPTURER (P2)** — coller les ~15 premières lignes de `syft ... -o table` et la
-> taille du fichier (`ls -lh sbom.spdx.json`).
+**Résultat obtenu (P2) :** Syft a catalogué **112 paquets** dans l'image (mélange de paquets
+système `deb` — Debian 13 « trixie » — et de paquets `python`), sur 2 682 localisations de
+fichiers. Extrait du tableau :
+
+```
+NAME                     VERSION          TYPE
+apt                      3.0.3            deb
+bash                     5.2.37-2+b8      deb
+ca-certificates          20250419         deb
+flask                    3.0.3            python
+click                    8.4.2            python
+blinker                  1.9.0            python
+...                      (112 paquets au total)
+```
+
+On retrouve bien la « liste d'ingrédients » : Flask 3.0.3, gunicorn, la base Debian, openssl, etc.
 
 ### 3.3 Scan & gate qui casse (Grype)
 
@@ -123,17 +137,35 @@ grype sbom:sbom.spdx.json -o table          # scan lisible
 grype "$IMG:$TAG" ; echo "exit=$?"          # lit .grype.yaml, exit ≠ 0 = chaîne cassée
 ```
 
-**Démonstration de la gate :** on épingle temporairement une version vulnérable
-(`Flask==2.0.1` dans `requirements.txt`), on rebuild, et on constate que le scan casse.
+**Résultat obtenu (P3) — la gate s'est déclenchée sur des CVE réelles :** sur notre image, Grype
+a trouvé **91 vulnérabilités (dont 8 critiques et 59 hautes), 91 corrigeables**. Comme
+`.grype.yaml` exige `fail-on-severity: critical` sur du `only-fixed`, la commande sort en
+**code 2** — la chaîne est **cassée**, exactement comme attendu :
 
-```bash
-docker build -t "$IMG:vuln" app/
-grype "$IMG:vuln" --only-fixed --fail-on high ; echo "exit=$?"   # attendu : exit ≠ 0
-git checkout app/requirements.txt                                # rétablir la version saine
+```
+ ✘ Scan for vulnerabilities   [91 vulnerability matches]
+   ├── by severity: 8 critical, 59 high, 84 medium, 15 low, 51 negligible (36 unknown)
+   └── by status:   91 fixed, 162 not-fixed, 162 ignored
+NAME         INSTALLED        FIXED IN          TYPE  VULNERABILITY    SEVERITY   RISK
+libssl3t64   3.5.5-1~deb13u2  3.5.6-1~deb13u2   deb   CVE-2026-34182   Critical   0.2
+openssl      3.5.5-1~deb13u2  3.5.6-1~deb13u2   deb   CVE-2026-34182   Critical   0.2
+...
+[0042] ERROR discovered vulnerabilities at or above the severity threshold
+exit=2
 ```
 
-> ⏳ **PREUVE À CAPTURER (P3)** — capture de la sortie Grype où `exit ≠ 0` sur l'image `:vuln`
-> (c'est la preuve « le scan bloque réellement »), puis confirmation du rollback.
+**Interprétation :** les critiques proviennent de la bibliothèque **openssl** de l'image de base
+`python:3.12-slim`, et sont **corrigeables** (`FIXED IN 3.5.6-1~deb13u2`). C'est précisément le
+cas que la gate doit bloquer : une vulnérabilité **critique ET actionnable**. Le choix
+`only-fixed: true` évite de bloquer sur des CVE sans correctif (bruit non actionnable).
+
+> **Remédiation (documentée) :** pour repasser la gate au vert, on applique les correctifs de la
+> base au build (`apt-get upgrade` dans le stage runtime du Dockerfile) puis on reconstruit. C'est
+> la boucle « détecter → corriger → re-vérifier » attendue en production. *(Optionnel selon le
+> temps ; la preuve que la gate **bloque** est déjà acquise ci-dessus.)*
+
+> ℹ️ Démo alternative prévue par le lab (non nécessaire ici puisque la gate casse déjà sur du
+> réel) : épingler `Flask==2.0.1` dans `requirements.txt`, rebuild, `grype --fail-on high` → exit ≠ 0.
 
 ### 3.4 Signature (cosign)
 
