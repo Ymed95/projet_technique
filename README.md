@@ -6,13 +6,12 @@
 ## Décisions d'équipe (à ne pas changer en cours de route)
 
 - **Dépôt :** `Ymed95/projet_technique` (fork de travail).
-- **Identité GHCR :** `ghcr.io/Ymed95/scs-demo-app` — tous les `<votre-user>` du dépôt d'origine
-  ont été remplacés par `Ymed95`. Le pipeline CI (Lab 5) pousse déjà sous ce nom automatiquement
-  (`github.repository_owner`).
+- **Identité GHCR :** `ghcr.io/ymed95/scs-demo-app` — tous les `<votre-user>` du dépôt d'origine
+  ont été remplacés par notre identité (minuscules, requis par GHCR). Le pipeline CI (Lab 5) pousse
+  sous ce même nom.
 - **Identité keyless (Lab 5 / policy 03) :**
   `https://github.com/Ymed95/projet_technique/.github/workflows/supply-chain.yml@refs/heads/main`
-- Voir [`TICKETS.md`](TICKETS.md) pour la répartition du travail entre les 3 membres et le planning
-  de ce soir.
+- Voir [`TICKETS.md`](TICKETS.md) pour la répartition du travail entre les 3 membres.
 
 ## Le pitch en une phrase
 

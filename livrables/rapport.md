@@ -359,7 +359,6 @@ Tout se reconstruit de zéro, en local, sans cloud :
 
 ```bash
 git clone https://github.com/Ymed95/projet_technique.git && cd projet_technique
-git checkout claude/project-delivery-tonight-kt8qhz
 # 1. Outils : docs/01-prerequis-setup.md   2. Login GHCR : docker login ghcr.io -u ymed95
 export IMG=ghcr.io/ymed95/scs-demo-app ; export TAG=0.1.0
 # 3. Build+push+digest (§3.1) → 4. SBOM+scan (§3.2-3.3) → 5. Sign+attest (§3.4-3.5)
