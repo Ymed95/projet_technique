@@ -3,6 +3,7 @@
 
 # 1) Étape build : installe les dépendances dans un venv isolé
 FROM python:3.12-slim AS builder
+RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 ENV PIP_NO_CACHE_DIR=1 PYTHONDONTWRITEBYTECODE=1
 COPY requirements.txt .
@@ -12,6 +13,7 @@ RUN python -m venv /opt/venv \
 
 # 2) Étape runtime : image finale minimale
 FROM python:3.12-slim AS runtime
+RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
 ENV PATH="/opt/venv/bin:$PATH" \
     PYTHONUNBUFFERED=1 \
     PORT=8080 \

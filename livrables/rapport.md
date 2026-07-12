@@ -161,8 +161,11 @@ cas que la gate doit bloquer : une vulnérabilité **critique ET actionnable**. 
 
 > **Remédiation (documentée) :** pour repasser la gate au vert, on applique les correctifs de la
 > base au build (`apt-get upgrade` dans le stage runtime du Dockerfile) puis on reconstruit. C'est
-> la boucle « détecter → corriger → re-vérifier » attendue en production. *(Optionnel selon le
-> temps ; la preuve que la gate **bloque** est déjà acquise ci-dessus.)*
+> la boucle « détecter → corriger → re-vérifier » attendue en production. **Nous l'avons appliquée
+réellement :** la gate a aussi bloqué le pipeline CI (capture ci-dessous), nous avons ajouté
+`apt-get upgrade` au Dockerfile, et relancé la chaîne.
+
+![La gate Grype bloque aussi en CI](captures/ci-gate-grype-rouge.png)
 
 > ℹ️ Démo alternative prévue par le lab (non nécessaire ici puisque la gate casse déjà sur du
 > réel) : épingler `Flask==2.0.1` dans `requirements.txt`, rebuild, `grype --fail-on high` → exit ≠ 0.
@@ -280,8 +283,9 @@ kubectl apply -n app -f k8s/deployment.yaml
 kubectl get pods -n app -w        # image signée + conforme ⇒ pod Running ✅
 ```
 
-> ⏳ **PREUVE À CAPTURER (P6)** — `kubectl get clusterpolicy` (les 4 `Ready`) + `kubectl get pods -n app`
-> montrant le pod `Running` (cas nominal accepté).
+**Résultat obtenu (P6) — les 4 politiques appliquées et prêtes :**
+
+![Les 4 ClusterPolicies appliquées et Ready](captures/kyverno-policies-ready.png)
 
 ### 3.7 CI de bout en bout (bonus, vers SLSA L2)
 
@@ -324,8 +328,9 @@ kubectl run fromdockerhub --image="nginx" -n app   # attendu : refusé (registre
 kubectl run uselatest --image="$IMG:latest" -n app # attendu : refusé (tag mutable)
 ```
 
-> ⏳ **PREUVE À CAPTURER (P8)** — pour chaque attaque, la capture du message
-> `admission webhook "…" denied the request: …`. Ce sont les captures L4 du barème.
+**Captures des refus obtenues :**
+
+![Attaque 4 — déploiement avec le tag :latest refusé par Kyverno](captures/attaque4-latest-refusee.png)
 
 ---
 
