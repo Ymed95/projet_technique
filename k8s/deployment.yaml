@@ -1,6 +1,6 @@
 # Déploiement de l'app — À DÉPLOYER PAR DIGEST (pas par tag).
 # ➜ Remplacez l'image ci-dessous par VOTRE digest signé (sortie de `echo $DIGEST` au Lab 0/2).
-#    ex : ghcr.io/Ymed95/scs-demo-app@sha256:abcd1234...
+#    ex : ghcr.io/ymed95/scs-demo-app@sha256:abcd1234...
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: app
-          image: ghcr.io/Ymed95/scs-demo-app@sha256:REMPLACEZ_PAR_VOTRE_DIGEST
+          image: ghcr.io/ymed95/scs-demo-app@sha256:REMPLACEZ_PAR_VOTRE_DIGEST
           ports:
             - containerPort: 8080
           readinessProbe:

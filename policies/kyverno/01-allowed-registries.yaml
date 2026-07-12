@@ -1,6 +1,6 @@
 # Politique 1 — N'autoriser QUE votre registry GHCR.
 # Bloque toute image provenant d'un registry non listé (Docker Hub, registry pirate, etc.).
-# ➜ Adaptez "ghcr.io/Ymed95/" à votre fork.
+# ➜ Adaptez "ghcr.io/ymed95/" à votre fork.
 apiVersion: kyverno.io/v1
 kind: ClusterPolicy
 metadata:
@@ -21,12 +21,12 @@ spec:
               kinds: [Pod]
       validate:
         message: >-
-          Image refusée : seules les images de ghcr.io/Ymed95/ sont autorisées.
+          Image refusée : seules les images de ghcr.io/ymed95/ sont autorisées.
         pattern:
           spec:
             =(ephemeralContainers):
-              - image: "ghcr.io/Ymed95/*"
+              - image: "ghcr.io/ymed95/*"
             =(initContainers):
-              - image: "ghcr.io/Ymed95/*"
+              - image: "ghcr.io/ymed95/*"
             containers:
-              - image: "ghcr.io/Ymed95/*"
+              - image: "ghcr.io/ymed95/*"
